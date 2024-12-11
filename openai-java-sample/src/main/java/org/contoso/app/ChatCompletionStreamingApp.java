@@ -3,24 +3,23 @@ package org.contoso.app;
 import com.openai.azure.credential.AzureApiKeyCredential;
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.core.JsonValue;
-import com.openai.models.ChatCompletion;
+import com.openai.core.http.StreamResponse;
+import com.openai.models.ChatCompletionChunk;
 import com.openai.models.ChatCompletionCreateParams;
 import com.openai.models.ChatCompletionMessageParam;
 import com.openai.models.ChatCompletionUserMessageParam;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdk;
 import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
-
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class App {
+public final class ChatCompletionStreamingApp {
 //    static {
 //        configureOTEL();
 //    }
 
-    public static void main(String[] args) {
+    // NOTE: Stainless SDK streaming API will not currently work against Azure endpoint, so this sample will not work.
+    public static void main(String[] args) throws Exception {
         final OpenAIOkHttpClient.Builder clientBuilder = OpenAIOkHttpClient.builder();
 
         clientBuilder
@@ -40,15 +39,12 @@ public class App {
                 .topP(0.5)
                 .build();
 
-        final ChatCompletion chatCompletion = client.chat().completions().create(params);
-
-        final List<ChatCompletion.Choice> choices = chatCompletion.choices();
-        for (ChatCompletion.Choice choice : choices) {
-            System.out.println("Choice content: " + choice.message().content().get());
-        }
-
-        final JsonValue filterResult = chatCompletion._additionalProperties().get("prompt_filter_results");
-        System.out.println("Content filter results: " + filterResult);
+        // 'createStreaming(params)' API is yet to be supported by Stainless SDK against Azure endpoint.
+        final StreamResponse<ChatCompletionChunk> chatCompletionStream = client.chat().completions().createStreaming(params);
+        chatCompletionStream.stream().forEach(chunk -> {
+            System.out.println("Chunk: " + chunk);
+        });
+        chatCompletionStream.close();
     }
 
 //    private static void configureOTEL() {

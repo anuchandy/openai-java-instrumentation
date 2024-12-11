@@ -11,6 +11,7 @@ import io.opentelemetry.sdk.autoconfigure.AutoConfiguredOpenTelemetrySdkBuilder;
 
 import static net.bytebuddy.matcher.ElementMatchers.isMethod;
 import static net.bytebuddy.matcher.ElementMatchers.isPublic;
+import static net.bytebuddy.matcher.ElementMatchers.nameContains;
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.returns;
 import static net.bytebuddy.matcher.ElementMatchers.takesArgument;
@@ -33,6 +34,15 @@ public class OpenTelemetryAgent {
                                     .and(takesArgument(0, named("com.openai.models.ChatCompletionCreateParams")))
                                     .and(takesArgument(1, named("com.openai.core.RequestOptions")))
                                     .and(returns(named("com.openai.models.ChatCompletion")))));
+                })
+                .transform((builder, typeDescription, classLoader, module, protectionDomain) -> {
+                    return builder.visit(Advice.to(ChatCompletionStreamingMethodAdvice.class)
+                            .on(isMethod()
+                                    .and(isPublic())
+                                    .and(named("createStreaming"))
+                                    .and(takesArgument(0, named("com.openai.models.ChatCompletionCreateParams")))
+                                    .and(takesArgument(1, named("com.openai.core.RequestOptions")))
+                                    .and(returns(nameContains("com.openai.core.http.StreamResponse")))));
                 })
                 .installOn(inst);
     }
